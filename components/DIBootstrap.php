@@ -66,7 +66,6 @@ class DIBootstrap implements \yii\base\BootstrapInterface
             BookService::class => function ($container, $params, $config) {
                 return new BookService(
                     $container->get(BookRepository::class),
-                    $container->get(AuthorRepository::class),
                     $container->get(BookAuthorRepository::class),
                     $container->get(AuthorSubscriptionRepository::class),
                     $container->get(StorageInterface::class),

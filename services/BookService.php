@@ -13,6 +13,8 @@ use app\repositories\BookAuthorRepository;
 use app\repositories\BookRepository;
 use app\services\notifications\EmailNotificationStrategy;
 use app\services\notifications\SmsNotificationStrategy;
+use Throwable;
+use Yii;
 use yii\data\ActiveDataProvider;
 use yii\web\UploadedFile;
 
@@ -54,11 +56,6 @@ class BookService
         $book = new Book();
         $book->loadDefaultValues();
         $book->load($data);
-        
-        if ($coverImageFile !== null) {
-            $filePath = $this->storageService->uploadFile($coverImageFile);
-            $book->cover_image = $filePath;
-        }
 
         if (!$book->validate()) {
             $errors = $book->getFirstErrors();
@@ -66,11 +63,31 @@ class BookService
             throw new ServiceException($errorMessage);
         }
 
-        if (!$this->bookRepository->save($book)) {
-            throw new ServiceException('Не удалось сохранить книгу.');
-        }
+        $uploadedCoverImagePath = null;
+        $transaction = Yii::$app->db->beginTransaction();
 
-        $this->bookAuthorRepository->replace($book->id, $authorIds);
+        try {
+            if ($coverImageFile !== null) {
+                $uploadedCoverImagePath = $this->storageService->uploadFile($coverImageFile);
+                $book->cover_image = $uploadedCoverImagePath;
+            }
+
+            if (!$this->bookRepository->save($book)) {
+                throw new ServiceException('Не удалось сохранить книгу.');
+            }
+
+            $this->bookAuthorRepository->replace($book->id, $authorIds);
+
+            $transaction->commit();
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+
+            if ($uploadedCoverImagePath !== null) {
+                $this->storageService->deleteFile($uploadedCoverImagePath);
+            }
+
+            throw $e;
+        }
 
         $bookWithAuthors = $this->bookRepository->findByIdWithAuthors($book->id);
         if ($bookWithAuthors !== null) {
@@ -86,14 +103,10 @@ class BookService
     {
         $book = $this->getById($id);
         $oldCoverImage = $book->cover_image;
-        
+        $newCoverImagePath = null;
+
         unset($data['coverImageFile']);
         $book->load($data);
-
-        if ($coverImageFile !== null) {
-            $filePath = $this->storageService->uploadFile($coverImageFile, $oldCoverImage);
-            $book->cover_image = $filePath;
-        }
 
         if (!$book->validate()) {
             $errors = $book->getFirstErrors();
@@ -101,11 +114,36 @@ class BookService
             throw new ServiceException($errorMessage);
         }
 
-        if (!$this->bookRepository->save($book)) {
-            throw new ServiceException('Не удалось обновить книгу.');
+        $transaction = Yii::$app->db->beginTransaction();
+
+        try {
+            if ($coverImageFile !== null) {
+                $newCoverImagePath = $this->storageService->uploadFile($coverImageFile);
+                $book->cover_image = $newCoverImagePath;
+            }
+
+            if (!$this->bookRepository->save($book)) {
+                throw new ServiceException('Не удалось обновить книгу.');
+            }
+
+            $this->bookAuthorRepository->replace($book->id, $authorIds);
+
+            $transaction->commit();
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+
+            if ($newCoverImagePath !== null) {
+                $this->storageService->deleteFile($newCoverImagePath);
+            }
+
+            $book->cover_image = $oldCoverImage;
+
+            throw $e;
         }
 
-        $this->bookAuthorRepository->replace($book->id, $authorIds);
+        if ($newCoverImagePath !== null && $oldCoverImage !== null && $oldCoverImage !== '') {
+            $this->storageService->deleteFile($oldCoverImage);
+        }
 
         return $book;
     }
@@ -114,9 +152,19 @@ class BookService
     {
         $book = $this->getById($id);
         $coverImage = $book->cover_image;
-        
-        if (!$this->bookRepository->delete($book)) {
-            throw new ServiceException('Не удалось удалить книгу.');
+
+        $transaction = Yii::$app->db->beginTransaction();
+
+        try {
+            if (!$this->bookRepository->delete($book)) {
+                throw new ServiceException('Не удалось удалить книгу.');
+            }
+
+            $transaction->commit();
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+
+            throw $e;
         }
 
         if ($coverImage !== null && $coverImage !== '') {
@@ -144,7 +192,7 @@ class BookService
         foreach ($book->authors as $author) {
             foreach ($this->subscriptionRepository->findByAuthorIdBatch($author->id) as $subscriptions) {
                 foreach ($subscriptions as $subscription) {
-                    $this->sendNotificationToSubscriber($subscription, $subject, $message, $author->id);
+                    $this->sendNotificationToSubscriber($subscription, $subject, $message);
                 }
             }
         }
@@ -153,8 +201,7 @@ class BookService
     private function sendNotificationToSubscriber(
         AuthorSubscription $subscription,
         string $subject,
-        string $message,
-        int $authorId
+        string $message
     ): void {
         foreach ($this->notificationStrategies as $strategy) {
             if ($strategy->canSend($subscription)) {
@@ -162,5 +209,4 @@ class BookService
             }
         }
     }
-
 }
