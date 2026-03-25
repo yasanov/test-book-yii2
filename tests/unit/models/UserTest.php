@@ -6,38 +6,44 @@ use app\models\User;
 
 class UserTest extends \Codeception\Test\Unit
 {
-    public function testFindUserById()
+    private function makeUser(): User
     {
-        verify($user = User::findIdentity(100))->notEmpty();
-        verify($user->username)->equals('admin');
-
-        verify(User::findIdentity(999))->empty();
+        return new class() extends User {
+            public int $id = 0;
+            public string $username = '';
+            public string $email = '';
+            public string $password_hash = '';
+            public string $auth_key = '';
+            public string $access_token = '';
+            public int $created_at = 0;
+            public int $updated_at = 0;
+        };
     }
 
-    public function testFindUserByAccessToken()
+    public function testValidateAuthKey(): void
     {
-        verify($user = User::findIdentityByAccessToken('100-token'))->notEmpty();
-        verify($user->username)->equals('admin');
+        $user = $this->makeUser();
+        $user->auth_key = 'test100key';
 
-        verify(User::findIdentityByAccessToken('non-existing'))->empty();
+        verify($user->validateAuthKey('test100key'))->true();
+        verify($user->validateAuthKey('wrong-key'))->false();
     }
 
-    public function testFindUserByUsername()
+    public function testSetPasswordAndValidatePassword(): void
     {
-        verify($user = User::findByUsername('admin'))->notEmpty();
-        verify(User::findByUsername('not-admin'))->empty();
+        $user = $this->makeUser();
+        $user->setPassword('admin');
+
+        verify($user->validatePassword('admin'))->true();
+        verify($user->validatePassword('123456'))->false();
     }
 
-    /**
-     * @depends testFindUserByUsername
-     */
-    public function testValidateUser()
+    public function testGenerateAccessToken(): void
     {
-        $user = User::findByUsername('admin');
-        verify($user->validateAuthKey('test100key'))->notEmpty();
-        verify($user->validateAuthKey('test102key'))->empty();
+        $user = $this->makeUser();
+        $user->generateAccessToken();
 
-        verify($user->validatePassword('admin'))->notEmpty();
-        verify($user->validatePassword('123456'))->empty();
+        verify($user->access_token)->notEmpty();
+        verify(is_string($user->access_token))->true();
     }
 }

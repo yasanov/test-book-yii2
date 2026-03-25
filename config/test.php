@@ -32,6 +32,9 @@ return [
         'user' => [
             'identityClass' => 'app\models\User',
         ],
+        'authManager' => [
+            'class' => \yii\rbac\PhpManager::class,
+        ],
         'request' => [
             'cookieValidationKey' => 'test',
             'enableCsrfValidation' => false,
