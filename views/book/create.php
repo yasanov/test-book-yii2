@@ -1,7 +1,7 @@
 <?php
 
 /** @var yii\web\View $this */
-/** @var app\models\Book $model */
+/** @var app\models\BookForm $model */
 /** @var app\services\BookCoverImageService $bookCoverImageService */
 
 use yii\bootstrap5\Html;
@@ -16,7 +16,6 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <?= $this->render('_form', [
         'model' => $model,
-        'selectedAuthorIds' => [],
         'bookCoverImageService' => $bookCoverImageService,
     ]) ?>
 

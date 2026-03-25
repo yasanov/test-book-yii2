@@ -1,14 +1,16 @@
 <?php
 
 /** @var yii\web\View $this */
-/** @var app\models\Book $model */
+/** @var app\models\BookForm $model */
 /** @var yii\widgets\ActiveForm $form */
-/** @var array $selectedAuthorIds */
 /** @var app\services\BookCoverImageService $bookCoverImageService */
 
+use app\assets\BookFormAsset;
 use yii\bootstrap5\ActiveForm;
 use yii\bootstrap5\Html;
+use yii\helpers\Url;
 
+BookFormAsset::register($this);
 ?>
 
 <?php $form = ActiveForm::begin(['options' => ['enctype' => 'multipart/form-data']]); ?>
@@ -23,7 +25,7 @@ use yii\bootstrap5\Html;
 
 <?= $form->field($model, 'coverImageFile')->fileInput(['accept' => 'image/*']) ?>
 
-<?php $coverImageUrl = $bookCoverImageService->getUrl($model); ?>
+<?php $coverImageUrl = $bookCoverImageService->getUrlByPath($model->currentCoverImagePath); ?>
 <?php if ($coverImageUrl !== null): ?>
     <div class="form-group">
         <?= Html::img($coverImageUrl, ['style' => 'max-width: 200px; max-height: 200px;']) ?>
@@ -31,17 +33,10 @@ use yii\bootstrap5\Html;
     </div>
 <?php endif; ?>
 
-<?php
-use app\assets\BookFormAsset;
-use yii\helpers\Url;
-
-BookFormAsset::register($this);
-?>
-
 <div class="form-group">
     <label class="control-label">Авторы</label>
     <div id="authors-list"
-         data-selected-ids="<?= htmlspecialchars(json_encode($selectedAuthorIds ?? []), ENT_QUOTES, 'UTF-8') ?>"
+         data-selected-ids="<?= htmlspecialchars(json_encode($model->authorIds), ENT_QUOTES, 'UTF-8') ?>"
          data-list-url="<?= htmlspecialchars(Url::to(['author/list']), ENT_QUOTES, 'UTF-8') ?>">
         <p class="text-muted">Загрузка авторов...</p>
     </div>

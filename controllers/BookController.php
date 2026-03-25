@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
-use Yii;
-use app\exceptions\NotFoundException;
-use app\models\Book;
+use app\models\BookForm;
 use app\services\BookCoverImageService;
 use app\services\BookService;
+use Yii;
 use yii\filters\AccessControl;
 use yii\filters\VerbFilter;
-use yii\validators\ImageValidator;
 use yii\web\Controller;
 use yii\web\Response;
 use yii\web\UploadedFile;
@@ -88,33 +86,23 @@ class BookController extends Controller
 
     public function actionCreate(): string|Response
     {
-        $model = new Book();
-        $model->loadDefaultValues();
+        $form = new BookForm();
 
-        if (Yii::$app->request->post()) {
+        if ($form->load(Yii::$app->request->post())) {
             try {
-                $coverImageFile = UploadedFile::getInstance($model, 'coverImageFile');
-                $this->validateImageFile($coverImageFile);
-                
-                $authorIds = Yii::$app->request->post('author_ids', []);
-                
-                $book = $this->bookService->create(
-                    Yii::$app->request->post(),
-                    $authorIds,
-                    $coverImageFile
-                );
-                
+                $form->coverImageFile = UploadedFile::getInstance($form, 'coverImageFile');
+                $book = $this->bookService->create($form);
+
                 Yii::$app->session->setFlash('success', 'Книга успешно создана.');
 
                 return $this->redirect(['view', 'id' => $book->id]);
             } catch (\Exception $e) {
                 Yii::$app->session->setFlash('error', $e->getMessage());
-                $model->load(Yii::$app->request->post());
             }
         }
 
         return $this->render('create', [
-            'model' => $model,
+            'model' => $form,
             'bookCoverImageService' => $this->bookCoverImageService,
         ]);
     }
@@ -122,21 +110,14 @@ class BookController extends Controller
     public function actionUpdate(int $id): string|Response
     {
         $book = $this->bookService->getById($id);
+        $form = BookForm::fromBook($book);
 
-        if (Yii::$app->request->post()) {
+        if ($form->load(Yii::$app->request->post())) {
             try {
-                $coverImageFile = UploadedFile::getInstance($book, 'coverImageFile');
-                $this->validateImageFile($coverImageFile);
-                
-                $authorIds = Yii::$app->request->post('author_ids', []);
-                
-                $book = $this->bookService->update(
-                    $id,
-                    Yii::$app->request->post(),
-                    $authorIds,
-                    $coverImageFile
-                );
-                
+                $form->currentCoverImagePath = $book->cover_image;
+                $form->coverImageFile = UploadedFile::getInstance($form, 'coverImageFile');
+                $book = $this->bookService->update($id, $form);
+
                 Yii::$app->session->setFlash('success', 'Книга успешно обновлена.');
 
                 return $this->redirect(['view', 'id' => $book->id]);
@@ -145,11 +126,9 @@ class BookController extends Controller
             }
         }
 
-        $selectedAuthorIds = $this->bookService->getSelectedAuthorIds($book);
-
         return $this->render('update', [
-            'model' => $book,
-            'selectedAuthorIds' => $selectedAuthorIds,
+            'book' => $book,
+            'model' => $form,
             'bookCoverImageService' => $this->bookCoverImageService,
         ]);
     }
@@ -164,21 +143,5 @@ class BookController extends Controller
         }
 
         return $this->redirect(['index']);
-    }
-
-    private function validateImageFile(?UploadedFile $file): void
-    {
-        if ($file === null) {
-            return;
-        }
-
-        $model = new Book();
-        $model->coverImageFile = $file;
-
-        if (!$model->validate(['coverImageFile'])) {
-            $errors = $model->getErrors('coverImageFile');
-            $errorMessage = !empty($errors) ? implode(', ', $errors) : 'Неизвестная ошибка валидации файла';
-            throw new \yii\base\Exception('Ошибка валидации файла: ' . $errorMessage);
-        }
     }
 }

@@ -17,10 +17,14 @@
                 data.items.forEach((author) => {
                     const checked = authorsSelectedIds.indexOf(author.id) !== -1 ? 'checked' : '';
                     html += `<div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="author_ids[]" value="${author.id}" id="author_${author.id}" ${checked}>
+                        <input class="form-check-input" type="checkbox" name="BookForm[authorIds][]" value="${author.id}" id="author_${author.id}" ${checked}>
                         <label class="form-check-label" for="author_${author.id}">${author.full_name}</label>
                     </div>`;
                 });
+
+                if (!data.items.length && !append) {
+                    html = '<p class="text-muted">Авторы пока не найдены.</p>';
+                }
 
                 if (append) {
                     $('#authors-list').find('.load-more-btn').remove();
@@ -51,7 +55,7 @@
         if ($authorsList.length) {
             try {
                 const selectedIdsAttr = $authorsList.attr('data-selected-ids') || '[]';
-                authorsSelectedIds = JSON.parse(selectedIdsAttr);
+                authorsSelectedIds = JSON.parse(selectedIdsAttr).map((id) => parseInt(id, 10));
             } catch (e) {
                 console.error('Ошибка парсинга selected-ids:', e, 'Значение:', $authorsList.attr('data-selected-ids'));
                 authorsSelectedIds = [];

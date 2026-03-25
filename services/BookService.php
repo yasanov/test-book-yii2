@@ -8,6 +8,7 @@ use app\exceptions\NotFoundException;
 use app\exceptions\ServiceException;
 use app\models\AuthorSubscription;
 use app\models\Book;
+use app\models\BookForm;
 use app\repositories\AuthorSubscriptionRepository;
 use app\repositories\BookAuthorRepository;
 use app\repositories\BookRepository;
@@ -16,7 +17,7 @@ use app\services\notifications\SmsNotificationStrategy;
 use Throwable;
 use Yii;
 use yii\data\ActiveDataProvider;
-use yii\web\UploadedFile;
+use yii\db\IntegrityException;
 
 class BookService
 {
@@ -51,24 +52,25 @@ class BookService
         return $book;
     }
 
-    public function create(array $data, array $authorIds, ?UploadedFile $coverImageFile = null): Book
+    public function create(BookForm $form): Book
     {
-        $book = new Book();
-        $book->loadDefaultValues();
-        $book->load($data);
-
-        if (!$book->validate()) {
-            $errors = $book->getFirstErrors();
+        if (!$form->validate()) {
+            $errors = $form->getFirstErrors();
             $errorMessage = !empty($errors) ? reset($errors) : 'Ошибка валидации данных книги.';
             throw new ServiceException($errorMessage);
         }
+
+        $book = new Book();
+        $book->loadDefaultValues();
+        $this->applyFormToBook($book, $form);
+        $this->validateBook($book);
 
         $uploadedCoverImagePath = null;
         $transaction = Yii::$app->db->beginTransaction();
 
         try {
-            if ($coverImageFile !== null) {
-                $uploadedCoverImagePath = $this->storageService->uploadFile($coverImageFile);
+            if ($form->coverImageFile !== null) {
+                $uploadedCoverImagePath = $this->storageService->uploadFile($form->coverImageFile);
                 $book->cover_image = $uploadedCoverImagePath;
             }
 
@@ -76,7 +78,7 @@ class BookService
                 throw new ServiceException('Не удалось сохранить книгу.');
             }
 
-            $this->bookAuthorRepository->batchInsert($book->id, $authorIds);
+            $this->bookAuthorRepository->batchInsert($book->id, $form->authorIds);
 
             $transaction->commit();
         } catch (Throwable $e) {
@@ -84,6 +86,10 @@ class BookService
 
             if ($uploadedCoverImagePath !== null) {
                 $this->storageService->deleteFile($uploadedCoverImagePath);
+            }
+
+            if ($e instanceof IntegrityException) {
+                throw $this->mapPersistenceException($e);
             }
 
             throw $e;
@@ -99,26 +105,25 @@ class BookService
         return $book;
     }
 
-    public function update(int $id, array $data, array $authorIds, ?UploadedFile $coverImageFile = null): Book
+    public function update(int $id, BookForm $form): Book
     {
-        $book = $this->getById($id);
-        $oldCoverImage = $book->cover_image;
-        $newCoverImagePath = null;
-
-        unset($data['coverImageFile']);
-        $book->load($data);
-
-        if (!$book->validate()) {
-            $errors = $book->getFirstErrors();
+        if (!$form->validate()) {
+            $errors = $form->getFirstErrors();
             $errorMessage = !empty($errors) ? reset($errors) : 'Ошибка валидации данных книги.';
             throw new ServiceException($errorMessage);
         }
 
+        $book = $this->getById($id);
+        $oldCoverImage = $book->cover_image;
+        $newCoverImagePath = null;
+        $this->applyFormToBook($book, $form);
+        $this->validateBook($book);
+
         $transaction = Yii::$app->db->beginTransaction();
 
         try {
-            if ($coverImageFile !== null) {
-                $newCoverImagePath = $this->storageService->uploadFile($coverImageFile);
+            if ($form->coverImageFile !== null) {
+                $newCoverImagePath = $this->storageService->uploadFile($form->coverImageFile);
                 $book->cover_image = $newCoverImagePath;
             }
 
@@ -126,7 +131,7 @@ class BookService
                 throw new ServiceException('Не удалось обновить книгу.');
             }
 
-            $this->bookAuthorRepository->sync($book->id, $authorIds);
+            $this->bookAuthorRepository->sync($book->id, $form->authorIds);
 
             $transaction->commit();
         } catch (Throwable $e) {
@@ -137,6 +142,10 @@ class BookService
             }
 
             $book->cover_image = $oldCoverImage;
+
+            if ($e instanceof IntegrityException) {
+                throw $this->mapPersistenceException($e);
+            }
 
             throw $e;
         }
@@ -172,13 +181,6 @@ class BookService
         }
     }
 
-    public function getSelectedAuthorIds(Book $book): array
-    {
-        return array_map(function ($author) {
-            return $author->id;
-        }, $book->authors);
-    }
-
     private function notifySubscribers(Book $book): void
     {
         if (empty($book->authors)) {
@@ -208,5 +210,35 @@ class BookService
                 $strategy->send($subscription, $subject, $message);
             }
         }
+    }
+
+    private function applyFormToBook(Book $book, BookForm $form): void
+    {
+        $book->title = $form->title;
+        $book->year = $form->year;
+        $book->isbn = $form->isbn;
+        $book->description = $form->description;
+    }
+
+    private function validateBook(Book $book): void
+    {
+        if ($book->validate()) {
+            return;
+        }
+
+        $errors = $book->getFirstErrors();
+        $errorMessage = !empty($errors) ? reset($errors) : 'Ошибка валидации данных книги.';
+        throw new ServiceException($errorMessage);
+    }
+
+    private function mapPersistenceException(IntegrityException $e): ServiceException
+    {
+        $message = $e->getMessage();
+
+        if (str_contains($message, 'books.isbn') || str_contains($message, 'Duplicate entry')) {
+            return new ServiceException('Книга с таким ISBN уже существует.', 0, $e);
+        }
+
+        return new ServiceException('Не удалось сохранить книгу из-за ограничения целостности данных.', 0, $e);
     }
 }

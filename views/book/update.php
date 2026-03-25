@@ -1,15 +1,15 @@
 <?php
 
 /** @var yii\web\View $this */
-/** @var app\models\Book $model */
-/** @var array $selectedAuthorIds */
+/** @var app\models\Book $book */
+/** @var app\models\BookForm $model */
 /** @var app\services\BookCoverImageService $bookCoverImageService */
 
 use yii\bootstrap5\Html;
 
 $this->title = 'Редактировать книгу: ' . $model->title;
 $this->params['breadcrumbs'][] = ['label' => 'Книги', 'url' => ['index']];
-$this->params['breadcrumbs'][] = ['label' => $model->title, 'url' => ['view', 'id' => $model->id]];
+$this->params['breadcrumbs'][] = ['label' => $book->title, 'url' => ['view', 'id' => $book->id]];
 $this->params['breadcrumbs'][] = 'Редактировать';
 ?>
 <div class="book-update">
@@ -18,7 +18,6 @@ $this->params['breadcrumbs'][] = 'Редактировать';
 
     <?= $this->render('_form', [
         'model' => $model,
-        'selectedAuthorIds' => $selectedAuthorIds,
         'bookCoverImageService' => $bookCoverImageService,
     ]) ?>
 

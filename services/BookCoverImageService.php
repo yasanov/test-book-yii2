@@ -16,12 +16,17 @@ class BookCoverImageService
 
     public function getUrl(Book $book): ?string
     {
-        if ($book->cover_image === null || $book->cover_image === '') {
+        return $this->getUrlByPath($book->cover_image);
+    }
+
+    public function getUrlByPath(?string $coverImagePath): ?string
+    {
+        if ($coverImagePath === null || $coverImagePath === '') {
             return null;
         }
 
         try {
-            return $this->storageService->getFileUrl($book->cover_image);
+            return $this->storageService->getFileUrl($coverImagePath);
         } catch (\Exception $e) {
             Yii::error('Ошибка получения URL изображения: ' . $e->getMessage(), 'book');
 
