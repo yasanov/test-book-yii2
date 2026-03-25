@@ -13,6 +13,7 @@ use app\repositories\AuthorSubscriptionRepository;
 use app\repositories\BookAuthorRepository;
 use app\repositories\BookRepository;
 use app\services\notifications\EmailNotificationStrategy;
+use app\services\notifications\NotificationStrategyInterface;
 use app\services\notifications\SmsNotificationStrategy;
 use Throwable;
 use Yii;
@@ -46,7 +47,7 @@ class BookService
     {
         $book = $this->bookRepository->findByIdWithAuthors($id);
         if ($book === null) {
-            throw new NotFoundException('Книга не найдена.');
+            throw new NotFoundException('РљРЅРёРіР° РЅРµ РЅР°Р№РґРµРЅР°.');
         }
 
         return $book;
@@ -56,7 +57,7 @@ class BookService
     {
         if (!$form->validate()) {
             $errors = $form->getFirstErrors();
-            $errorMessage = !empty($errors) ? reset($errors) : 'Ошибка валидации данных книги.';
+            $errorMessage = !empty($errors) ? reset($errors) : 'РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РґР°РЅРЅС‹С… РєРЅРёРіРё.';
             throw new ServiceException($errorMessage);
         }
 
@@ -75,7 +76,7 @@ class BookService
             }
 
             if (!$this->bookRepository->save($book)) {
-                throw new ServiceException('Не удалось сохранить книгу.');
+                throw new ServiceException('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РєРЅРёРіСѓ.');
             }
 
             $this->bookAuthorRepository->batchInsert($book->id, $form->authorIds);
@@ -109,7 +110,7 @@ class BookService
     {
         if (!$form->validate()) {
             $errors = $form->getFirstErrors();
-            $errorMessage = !empty($errors) ? reset($errors) : 'Ошибка валидации данных книги.';
+            $errorMessage = !empty($errors) ? reset($errors) : 'РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РґР°РЅРЅС‹С… РєРЅРёРіРё.';
             throw new ServiceException($errorMessage);
         }
 
@@ -128,7 +129,7 @@ class BookService
             }
 
             if (!$this->bookRepository->save($book)) {
-                throw new ServiceException('Не удалось обновить книгу.');
+                throw new ServiceException('РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РєРЅРёРіСѓ.');
             }
 
             $this->bookAuthorRepository->sync($book->id, $form->authorIds);
@@ -191,25 +192,57 @@ class BookService
         $subject = "Новая книга от {$authorsNames}";
         $message = "Новая книга от {$authorsNames}: \"{$book->title}\" ({$book->year})";
 
-        foreach ($book->authors as $author) {
-            foreach ($this->subscriptionRepository->findByAuthorIdBatch($author->id) as $subscriptions) {
-                foreach ($subscriptions as $subscription) {
-                    $this->sendNotificationToSubscriber($subscription, $subject, $message);
-                }
-            }
+        foreach ($this->collectUniqueSubscribers($book) as $notification) {
+            $notification['strategy']->send($notification['subscription'], $subject, $message);
         }
     }
 
-    private function sendNotificationToSubscriber(
-        AuthorSubscription $subscription,
-        string $subject,
-        string $message
-    ): void {
-        foreach ($this->notificationStrategies as $strategy) {
-            if ($strategy->canSend($subscription)) {
-                $strategy->send($subscription, $subject, $message);
+    /**
+     * @return array<int, array{strategy: NotificationStrategyInterface, subscription: AuthorSubscription}>
+     */
+    private function collectUniqueSubscribers(Book $book): array
+    {
+        $notifications = [];
+
+        foreach ($book->authors as $author) {
+            foreach ($this->subscriptionRepository->findByAuthorIdBatch($author->id) as $subscriptions) {
+                foreach ($subscriptions as $subscription) {
+                    foreach ($this->notificationStrategies as $strategy) {
+                        if (!$strategy->canSend($subscription)) {
+                            continue;
+                        }
+
+                        $recipientKey = $this->buildRecipientKey($strategy, $subscription);
+                        if (isset($notifications[$recipientKey])) {
+                            continue;
+                        }
+
+                        $notifications[$recipientKey] = [
+                            'strategy' => $strategy,
+                            'subscription' => $subscription,
+                        ];
+                    }
+                }
             }
         }
+
+        return array_values($notifications);
+    }
+
+    private function buildRecipientKey(NotificationStrategyInterface $strategy, AuthorSubscription $subscription): string
+    {
+        $email = trim((string)($subscription->email ?? ''));
+        $phone = trim((string)($subscription->phone ?? ''));
+
+        if ($strategy instanceof EmailNotificationStrategy) {
+            return 'email:' . mb_strtolower($email);
+        }
+
+        if ($strategy instanceof SmsNotificationStrategy) {
+            return 'sms:' . $phone;
+        }
+
+        return get_class($strategy) . ':' . (string)($subscription->id ?? '');
     }
 
     private function applyFormToBook(Book $book, BookForm $form): void
