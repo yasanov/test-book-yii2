@@ -76,7 +76,7 @@ class BookService
                 throw new ServiceException('Не удалось сохранить книгу.');
             }
 
-            $this->bookAuthorRepository->replace($book->id, $authorIds);
+            $this->bookAuthorRepository->batchInsert($book->id, $authorIds);
 
             $transaction->commit();
         } catch (Throwable $e) {
@@ -126,7 +126,7 @@ class BookService
                 throw new ServiceException('Не удалось обновить книгу.');
             }
 
-            $this->bookAuthorRepository->replace($book->id, $authorIds);
+            $this->bookAuthorRepository->sync($book->id, $authorIds);
 
             $transaction->commit();
         } catch (Throwable $e) {
