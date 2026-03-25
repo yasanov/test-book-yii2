@@ -15,8 +15,8 @@ class m260116_130404_create_author_subscriptions_table extends Migration
         $this->createTable('{{%author_subscriptions}}', [
             'id' => $this->primaryKey(),
             'author_id' => $this->integer()->notNull(),
-            'email' => $this->string(255)->notNull(),
-            'phone' => $this->string(20)->notNull(),
+            'email' => $this->string(255)->null(),
+            'phone' => $this->string(20)->null(),
             'created_at' => $this->integer()->notNull(),
         ], 'ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
 
@@ -33,8 +33,13 @@ class m260116_130404_create_author_subscriptions_table extends Migration
         $this->createIndex('idx-author_subscriptions-author_id', '{{%author_subscriptions}}', 'author_id');
         $this->createIndex('idx-author_subscriptions-email', '{{%author_subscriptions}}', 'email');
         $this->createIndex('idx-author_subscriptions-phone', '{{%author_subscriptions}}', 'phone');
-        // Уникальный индекс для комбинации author_id + email + phone (один гость может подписаться только один раз)
-        $this->createIndex('idx-author_subscriptions-unique', '{{%author_subscriptions}}', ['author_id', 'email', 'phone'], true);
+        $this->addCheck(
+            'chk-author_subscriptions-contact-required',
+            '{{%author_subscriptions}}',
+            "((`email` IS NOT NULL AND TRIM(`email`) <> '') OR (`phone` IS NOT NULL AND TRIM(`phone`) <> ''))"
+        );
+        $this->createIndex('ux-author_subscriptions-author-email', '{{%author_subscriptions}}', ['author_id', 'email'], true);
+        $this->createIndex('ux-author_subscriptions-author-phone', '{{%author_subscriptions}}', ['author_id', 'phone'], true);
     }
 
     /**

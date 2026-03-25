@@ -65,27 +65,27 @@ class RbacController extends Controller
         $auth->addChild($guest, $viewBook);
         $auth->addChild($guest, $viewAuthor);
         $auth->addChild($guest, $subscribeToAuthor);
-        $auth->addChild($guest, $viewReport);
 
         $user = $auth->createRole('user');
         $user->description = 'Authenticated user';
         $auth->add($user);
         $auth->addChild($user, $guest);
-        $auth->addChild($user, $createBook);
-        $auth->addChild($user, $updateBook);
-        $auth->addChild($user, $deleteBook);
-        $auth->addChild($user, $createAuthor);
-        $auth->addChild($user, $updateAuthor);
-        $auth->addChild($user, $deleteAuthor);
+        $auth->addChild($user, $viewReport);
 
         $admin = $auth->createRole('admin');
         $admin->description = 'Administrator';
         $auth->add($admin);
         $auth->addChild($admin, $user);
+        $auth->addChild($admin, $createBook);
+        $auth->addChild($admin, $updateBook);
+        $auth->addChild($admin, $deleteBook);
+        $auth->addChild($admin, $createAuthor);
+        $auth->addChild($admin, $updateAuthor);
+        $auth->addChild($admin, $deleteAuthor);
 
         $this->stdout("RBAC initialized successfully.\n", Console::FG_GREEN);
         $this->stdout("Created roles: guest, user, admin\n");
-        $this->stdout("Created CRUD permissions for books and authors.\n");
+        $this->stdout("Guest: books/authors/subscriptions, user: guest + report, admin: full access.\n");
 
         return ExitCode::OK;
     }

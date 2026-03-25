@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace app\models;
 
-use Yii;
-use yii\db\ActiveRecord;
-use yii\db\ActiveQuery;
 use yii\behaviors\TimestampBehavior;
+use yii\db\ActiveQuery;
+use yii\db\ActiveRecord;
 
 class AuthorSubscription extends ActiveRecord
 {
@@ -31,6 +30,15 @@ class AuthorSubscription extends ActiveRecord
         return [
             [['author_id'], 'required'],
             [['author_id', 'created_at'], 'integer'],
+            [['email', 'phone'], 'filter', 'filter' => static function ($value) {
+                if ($value === null) {
+                    return null;
+                }
+
+                $value = trim((string)$value);
+
+                return $value === '' ? null : $value;
+            }],
             [['email'], 'string', 'max' => 255],
             [['email'], 'email', 'skipOnEmpty' => true],
             [['phone'], 'string', 'max' => 20],
@@ -42,10 +50,10 @@ class AuthorSubscription extends ActiveRecord
 
     public function validateAtLeastOne(string $attribute, array $params): void
     {
-        $email = trim($this->email ?? '');
-        $phone = trim($this->phone ?? '');
+        $email = $this->email;
+        $phone = $this->phone;
 
-        if (empty($email) && empty($phone)) {
+        if ($email === null && $phone === null) {
             $this->addError($attribute, 'Необходимо указать хотя бы одно из полей: Email или Телефон.');
         }
     }
@@ -65,5 +73,4 @@ class AuthorSubscription extends ActiveRecord
     {
         return $this->hasOne(Author::class, ['id' => 'author_id']);
     }
-
 }

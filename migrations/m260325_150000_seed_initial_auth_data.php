@@ -140,7 +140,7 @@ class m260325_150000_seed_initial_auth_data extends Migration
             $auth->add($guest);
         }
 
-        foreach (['viewBook', 'viewAuthor', 'subscribeToAuthor', 'viewReport'] as $permissionName) {
+        foreach (['viewBook', 'viewAuthor', 'subscribeToAuthor'] as $permissionName) {
             if (!$auth->hasChild($guest, $permissions[$permissionName])) {
                 $auth->addChild($guest, $permissions[$permissionName]);
             }
@@ -157,7 +157,7 @@ class m260325_150000_seed_initial_auth_data extends Migration
             $auth->addChild($user, $guest);
         }
 
-        foreach (['createBook', 'updateBook', 'deleteBook', 'createAuthor', 'updateAuthor', 'deleteAuthor'] as $permissionName) {
+        foreach (['viewReport'] as $permissionName) {
             if (!$auth->hasChild($user, $permissions[$permissionName])) {
                 $auth->addChild($user, $permissions[$permissionName]);
             }
@@ -172,6 +172,12 @@ class m260325_150000_seed_initial_auth_data extends Migration
 
         if (!$auth->hasChild($admin, $user)) {
             $auth->addChild($admin, $user);
+        }
+
+        foreach (['createBook', 'updateBook', 'deleteBook', 'createAuthor', 'updateAuthor', 'deleteAuthor'] as $permissionName) {
+            if (!$auth->hasChild($admin, $permissions[$permissionName])) {
+                $auth->addChild($admin, $permissions[$permissionName]);
+            }
         }
 
         return [
