@@ -2,6 +2,11 @@
 
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
+$cookieValidationKey = $_ENV['COOKIE_VALIDATION_KEY'] ?? getenv('COOKIE_VALIDATION_KEY') ?: '';
+
+if ($cookieValidationKey === '') {
+    throw new RuntimeException('COOKIE_VALIDATION_KEY environment variable is required.');
+}
 
 $config = [
     'id' => 'basic',
@@ -14,8 +19,7 @@ $config = [
     ],
     'components' => [
         'request' => [
-            // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
-            'cookieValidationKey' => 'asdfsrdgrfeqawdfsrevwerf34we4',
+            'cookieValidationKey' => $cookieValidationKey,
         ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
