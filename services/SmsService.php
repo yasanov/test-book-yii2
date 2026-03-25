@@ -18,14 +18,19 @@ class SmsService
         
         $this->apiKey = $smsConfig['apiKey'] ?? '';
         $this->apiUrl = $smsConfig['apiUrl'] ?? 'https://smspilot.ru/api.php';
+    }
 
-        if (empty($this->apiKey)) {
-            throw new ServiceException('SMS API ключ не настроен. Проверьте параметры в config/params.php');
-        }
+    public function isConfigured(): bool
+    {
+        return $this->apiKey !== '';
     }
 
     public function sendSms(string $phone, string $message): bool
     {
+        if (!$this->isConfigured()) {
+            throw new ServiceException('SMS API ключ не настроен. Проверьте параметры в config/params.php');
+        }
+
         $phone = $this->normalizePhone($phone);
         
         if (empty($phone)) {

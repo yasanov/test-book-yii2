@@ -20,7 +20,7 @@ class SmsNotificationStrategy implements NotificationStrategyInterface
     {
         $phone = trim($subscription->phone ?? '');
 
-        return !empty($phone);
+        return !empty($phone) && $this->smsService->isConfigured();
     }
 
     public function send(AuthorSubscription $subscription, string $subject, string $message): void
