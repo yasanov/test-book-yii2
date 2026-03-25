@@ -10,7 +10,7 @@ use Aws\Exception\AwsException;
 use Yii;
 use yii\web\UploadedFile;
 
-class StorageService
+class StorageService implements StorageInterface
 {
     private ?S3Client $s3Client = null;
     private string $bucket;

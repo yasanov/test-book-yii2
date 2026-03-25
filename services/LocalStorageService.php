@@ -8,7 +8,7 @@ use app\exceptions\ServiceException;
 use Yii;
 use yii\web\UploadedFile;
 
-class LocalStorageService
+class LocalStorageService implements StorageInterface
 {
     private string $basePath;
     private string $webPath;

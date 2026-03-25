@@ -18,6 +18,8 @@ use app\services\notifications\EmailNotificationStrategy;
 use app\services\notifications\SmsNotificationStrategy;
 use app\services\ReportService;
 use app\services\SmsService;
+use app\services\StorageInterface;
+use app\services\StorageService;
 use app\services\SubscriptionService;
 use Yii;
 
@@ -35,9 +37,18 @@ class DIBootstrap implements \yii\base\BootstrapInterface
 
         Yii::$container->setDefinitions([
             LocalStorageService::class => LocalStorageService::class,
+            StorageService::class => StorageService::class,
+            StorageInterface::class => function ($container) use ($app) {
+                $driver = $app->params['storage']['driver'] ?? 'local';
+
+                return match ($driver) {
+                    's3' => $container->get(StorageService::class),
+                    default => $container->get(LocalStorageService::class),
+                };
+            },
             BookCoverImageService::class => function ($container) {
                 return new BookCoverImageService(
-                    $container->get(LocalStorageService::class)
+                    $container->get(StorageInterface::class)
                 );
             },
             SmsService::class => SmsService::class,
@@ -58,7 +69,7 @@ class DIBootstrap implements \yii\base\BootstrapInterface
                     $container->get(AuthorRepository::class),
                     $container->get(BookAuthorRepository::class),
                     $container->get(AuthorSubscriptionRepository::class),
-                    $container->get(LocalStorageService::class),
+                    $container->get(StorageInterface::class),
                     $container->get(SmsNotificationStrategy::class),
                     $container->get(EmailNotificationStrategy::class)
                 );

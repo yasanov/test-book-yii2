@@ -6,18 +6,13 @@ namespace app\services;
 
 use app\exceptions\NotFoundException;
 use app\exceptions\ServiceException;
-use app\models\Author;
 use app\models\AuthorSubscription;
 use app\models\Book;
-use app\repositories\AuthorRepository;
 use app\repositories\AuthorSubscriptionRepository;
 use app\repositories\BookAuthorRepository;
 use app\repositories\BookRepository;
-use app\services\LocalStorageService;
 use app\services\notifications\EmailNotificationStrategy;
-use app\services\notifications\NotificationStrategyInterface;
 use app\services\notifications\SmsNotificationStrategy;
-use Yii;
 use yii\data\ActiveDataProvider;
 use yii\web\UploadedFile;
 
@@ -27,10 +22,9 @@ class BookService
 
     public function __construct(
         private readonly BookRepository $bookRepository,
-        private readonly AuthorRepository $authorRepository,
         private readonly BookAuthorRepository $bookAuthorRepository,
         private readonly AuthorSubscriptionRepository $subscriptionRepository,
-        private readonly LocalStorageService $storageService,
+        private readonly StorageInterface $storageService,
         SmsNotificationStrategy $smsStrategy,
         EmailNotificationStrategy $emailStrategy
     ) {

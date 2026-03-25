@@ -10,7 +10,7 @@ use Yii;
 class BookCoverImageService
 {
     public function __construct(
-        private readonly LocalStorageService $storageService
+        private readonly StorageInterface $storageService
     ) {
     }
 
