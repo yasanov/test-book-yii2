@@ -6,7 +6,6 @@ namespace app\models;
 
 use Yii;
 use yii\base\Model;
-use yii\rbac\DbManager;
 
 /**
  * LoginForm is the model behind the login form.
@@ -45,10 +44,7 @@ class LoginForm extends Model
     {
         if ($this->validate()) {
             $user = $this->getUser();
-            if ($user && Yii::$app->user->login($user, $this->rememberMe ? 3600 * 24 * 30 : 0)) {
-                $this->assignUserRole($user);
-                return true;
-            }
+            return $user && Yii::$app->user->login($user, $this->rememberMe ? 3600 * 24 * 30 : 0);
         }
         return false;
     }
@@ -60,16 +56,5 @@ class LoginForm extends Model
         }
 
         return $this->_user;
-    }
-
-    private function assignUserRole(User $user): void
-    {
-        /** @var DbManager $auth */
-        $auth = Yii::$app->authManager;
-        $userRole = $auth->getRole('user');
-        
-        if ($userRole && !$auth->getAssignment('user', (string)$user->id)) {
-            $auth->assign($userRole, $user->id);
-        }
     }
 }
