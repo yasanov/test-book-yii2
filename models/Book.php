@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace app\models;
 
-use Yii;
 use yii\db\ActiveRecord;
 use yii\db\ActiveQuery;
 use yii\behaviors\TimestampBehavior;
@@ -89,19 +88,4 @@ class Book extends ActiveRecord
         }, $authors));
     }
 
-    public function getCoverImageUrl(): ?string
-    {
-        if ($this->cover_image === null || $this->cover_image === '') {
-            return null;
-        }
-
-        try {
-            $storageService = Yii::$container->get(\app\services\LocalStorageService::class);
-
-            return $storageService->getFileUrl($this->cover_image);
-        } catch (\Exception $e) {
-            Yii::error('Ошибка получения URL изображения: ' . $e->getMessage(), 'book');
-            return null;
-        }
-    }
 }

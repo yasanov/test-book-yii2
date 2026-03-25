@@ -4,6 +4,7 @@
 /** @var app\models\Book $model */
 /** @var yii\widgets\ActiveForm $form */
 /** @var array $selectedAuthorIds */
+/** @var app\services\BookCoverImageService $bookCoverImageService */
 
 use yii\bootstrap5\ActiveForm;
 use yii\bootstrap5\Html;
@@ -22,9 +23,10 @@ use yii\bootstrap5\Html;
 
 <?= $form->field($model, 'coverImageFile')->fileInput(['accept' => 'image/*']) ?>
 
-<?php if ($model->cover_image): ?>
+<?php $coverImageUrl = $bookCoverImageService->getUrl($model); ?>
+<?php if ($coverImageUrl !== null): ?>
     <div class="form-group">
-        <?= Html::img($model->getCoverImageUrl(), ['style' => 'max-width: 200px; max-height: 200px;']) ?>
+        <?= Html::img($coverImageUrl, ['style' => 'max-width: 200px; max-height: 200px;']) ?>
         <p class="text-muted">Текущая обложка</p>
     </div>
 <?php endif; ?>

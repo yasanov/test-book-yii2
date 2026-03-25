@@ -10,6 +10,7 @@ use app\repositories\BookAuthorRepository;
 use app\repositories\BookRepository;
 use app\repositories\ReportRepository;
 use app\services\AuthorService;
+use app\services\BookCoverImageService;
 use app\services\BookService;
 use app\services\EmailService;
 use app\services\LocalStorageService;
@@ -34,6 +35,11 @@ class DIBootstrap implements \yii\base\BootstrapInterface
 
         Yii::$container->setDefinitions([
             LocalStorageService::class => LocalStorageService::class,
+            BookCoverImageService::class => function ($container) {
+                return new BookCoverImageService(
+                    $container->get(LocalStorageService::class)
+                );
+            },
             SmsService::class => SmsService::class,
             EmailService::class => EmailService::class,
             SmsNotificationStrategy::class => function ($container) {

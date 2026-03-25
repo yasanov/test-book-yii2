@@ -3,6 +3,7 @@
 /** @var yii\web\View $this */
 /** @var app\models\Book $model */
 /** @var array $selectedAuthorIds */
+/** @var app\services\BookCoverImageService $bookCoverImageService */
 
 use yii\bootstrap5\Html;
 
@@ -18,6 +19,7 @@ $this->params['breadcrumbs'][] = 'Редактировать';
     <?= $this->render('_form', [
         'model' => $model,
         'selectedAuthorIds' => $selectedAuthorIds,
+        'bookCoverImageService' => $bookCoverImageService,
     ]) ?>
 
 </div>

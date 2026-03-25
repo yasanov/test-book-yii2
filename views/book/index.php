@@ -2,6 +2,7 @@
 
 /** @var yii\web\View $this */
 /** @var yii\data\ActiveDataProvider $dataProvider */
+/** @var app\services\BookCoverImageService $bookCoverImageService */
 
 use yii\bootstrap5\Html;
 use yii\grid\GridView;
@@ -26,9 +27,12 @@ $this->params['breadcrumbs'][] = $this->title;
             [
                 'attribute' => 'cover_image',
                 'format' => 'raw',
-                'value' => function ($model) {
+                'value' => function ($model) use ($bookCoverImageService) {
                     if ($model->cover_image) {
-                        return Html::img($model->getCoverImageUrl(), ['style' => 'max-width: 100px; max-height: 100px;']);
+                        $coverImageUrl = $bookCoverImageService->getUrl($model);
+                        if ($coverImageUrl !== null) {
+                            return Html::img($coverImageUrl, ['style' => 'max-width: 100px; max-height: 100px;']);
+                        }
                     }
                     return 'Нет обложки';
                 },

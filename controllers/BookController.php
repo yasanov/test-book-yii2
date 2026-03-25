@@ -7,6 +7,7 @@ namespace app\controllers;
 use Yii;
 use app\exceptions\NotFoundException;
 use app\models\Book;
+use app\services\BookCoverImageService;
 use app\services\BookService;
 use yii\filters\AccessControl;
 use yii\filters\VerbFilter;
@@ -21,6 +22,7 @@ class BookController extends Controller
         $id,
         $module,
         private readonly BookService $bookService,
+        private readonly BookCoverImageService $bookCoverImageService,
         $config = []
     ) {
         parent::__construct($id, $module, $config);
@@ -70,6 +72,7 @@ class BookController extends Controller
 
         return $this->render('index', [
             'dataProvider' => $dataProvider,
+            'bookCoverImageService' => $this->bookCoverImageService,
         ]);
     }
 
@@ -79,6 +82,7 @@ class BookController extends Controller
 
         return $this->render('view', [
             'model' => $model,
+            'bookCoverImageService' => $this->bookCoverImageService,
         ]);
     }
 
@@ -111,6 +115,7 @@ class BookController extends Controller
 
         return $this->render('create', [
             'model' => $model,
+            'bookCoverImageService' => $this->bookCoverImageService,
         ]);
     }
 
@@ -145,6 +150,7 @@ class BookController extends Controller
         return $this->render('update', [
             'model' => $book,
             'selectedAuthorIds' => $selectedAuthorIds,
+            'bookCoverImageService' => $this->bookCoverImageService,
         ]);
     }
 

@@ -2,6 +2,7 @@
 
 /** @var yii\web\View $this */
 /** @var app\models\Book $model */
+/** @var app\services\BookCoverImageService $bookCoverImageService */
 
 use yii\bootstrap5\Html;
 
@@ -30,8 +31,9 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <div class="row">
         <div class="col-md-3">
-            <?php if ($model->cover_image): ?>
-                <?= Html::img($model->getCoverImageUrl(), ['class' => 'img-fluid', 'alt' => $model->title]) ?>
+            <?php $coverImageUrl = $bookCoverImageService->getUrl($model); ?>
+            <?php if ($coverImageUrl !== null): ?>
+                <?= Html::img($coverImageUrl, ['class' => 'img-fluid', 'alt' => $model->title]) ?>
             <?php else: ?>
                 <div class="text-muted">Нет обложки</div>
             <?php endif; ?>
