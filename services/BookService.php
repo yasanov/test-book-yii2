@@ -47,7 +47,7 @@ class BookService
     {
         $book = $this->bookRepository->findByIdWithAuthors($id);
         if ($book === null) {
-            throw new NotFoundException('РљРЅРёРіР° РЅРµ РЅР°Р№РґРµРЅР°.');
+            throw new NotFoundException('Книга не найдена.');
         }
 
         return $book;
@@ -57,7 +57,7 @@ class BookService
     {
         if (!$form->validate()) {
             $errors = $form->getFirstErrors();
-            $errorMessage = !empty($errors) ? reset($errors) : 'РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РґР°РЅРЅС‹С… РєРЅРёРіРё.';
+            $errorMessage = !empty($errors) ? reset($errors) : 'Ошибка валидации данных книги.';
             throw new ServiceException($errorMessage);
         }
 
@@ -76,7 +76,7 @@ class BookService
             }
 
             if (!$this->bookRepository->save($book)) {
-                throw new ServiceException('РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РєРЅРёРіСѓ.');
+                throw new ServiceException('Не удалось сохранить книгу.');
             }
 
             $this->bookAuthorRepository->batchInsert($book->id, $form->authorIds);
@@ -110,7 +110,7 @@ class BookService
     {
         if (!$form->validate()) {
             $errors = $form->getFirstErrors();
-            $errorMessage = !empty($errors) ? reset($errors) : 'РћС€РёР±РєР° РІР°Р»РёРґР°С†РёРё РґР°РЅРЅС‹С… РєРЅРёРіРё.';
+            $errorMessage = !empty($errors) ? reset($errors) : 'Ошибка валидации данных книги.';
             throw new ServiceException($errorMessage);
         }
 
@@ -129,7 +129,7 @@ class BookService
             }
 
             if (!$this->bookRepository->save($book)) {
-                throw new ServiceException('РќРµ СѓРґР°Р»РѕСЃСЊ РѕР±РЅРѕРІРёС‚СЊ РєРЅРёРіСѓ.');
+                throw new ServiceException('Не удалось обновить книгу.');
             }
 
             $this->bookAuthorRepository->sync($book->id, $form->authorIds);
